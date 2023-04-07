@@ -17,7 +17,6 @@ function initParking(): ParkingSpace[] {
 			ticket: null,
 		  }));
 	}
-
 }
 
 export function ParkingContextProvider({
@@ -27,7 +26,6 @@ export function ParkingContextProvider({
 }) {
 
   const [parkingSpaces, setParkingSpaces] = React.useState(initParking());
-
   const updateParkingSpace =async (spaceNumber: number, ticket: Ticket | null) => {
    await setParkingSpaces((prev: ParkingSpace[]) =>
       prev.map((space) =>
@@ -58,11 +56,35 @@ export function ParkingContextProvider({
     return await p;
   };
 
+  //task#2 pay price base on barcode and time 
+  const calculatePrice =(barcode : String) : Number =>{
+	const carParkPlace = parkingSpaces.find(item => item.ticket?.barcode == barcode);
+	let cost = 0 ;
+	let timeToExit = new Date().getTime();
+	if(carParkPlace && carParkPlace.ticket?.timeOut == null){
+		let timeIn : Number | any = carParkPlace.ticket?.timeIn ? carParkPlace.ticket?.timeIn : 0
+		let parkTimeMillisconds = timeToExit-timeIn ; 
+		let parkTimeHours = parkTimeMillisconds / (60 * 60 * 1000);
+		cost = (Math.floor(parkTimeHours)> 1 ? Math.floor(parkTimeHours) : 1 ) * 2
+		return cost ;
+	}else{
+		console.log("something wrong your car place doesnt exist ...")
+	}
+	return 0 ;
+  }
+
+
   const leave = async (spaceNumber: number) => {
-    const p = new Promise((resolve) =>
-      resolve(updateParkingSpace(spaceNumber, null))
-    );
-    return await p;
+	const carpark = parkingSpaces.find(item=>item.spaceNumber== spaceNumber);
+	if(carpark && carpark.ticket && carpark.ticket.barcode){
+		console.log(`your cost :  ${calculatePrice(carpark.ticket.barcode)} euro`);
+		const p = new Promise((resolve) =>
+		  resolve(updateParkingSpace(spaceNumber, null))
+		);
+		return await p;
+	}else{
+		console.log("something wrong your car place doesnt exist ...")
+	}
   };
 
   const initialState: ParkingContextType = {
