@@ -1,6 +1,6 @@
 import * as React from "react";
 import { PARKING_CAPACITY } from "../config";
-import { ParkingContextType, ParkingSpace , Ticket} from "./types";
+import { ParkingContextType, ParkingSpace , Ticket , PaymentOption} from "./types";
 
 export const ParkingContext = React.createContext<
   ParkingContextType | undefined
@@ -18,6 +18,15 @@ function initParking(): ParkingSpace[] {
 		  }));
 	}
 }
+function initParkingPayment(): ParkingSpace[] {
+	const localValue = localStorage.getItem('payedParkingList')
+	const payedParkingList = localValue ? JSON.parse(localValue) : null ;
+	if(payedParkingList){
+		return payedParkingList;
+	}else{
+		return []
+	}
+}
 
 export function ParkingContextProvider({
   children,
@@ -26,6 +35,8 @@ export function ParkingContextProvider({
 }) {
 
   const [parkingSpaces, setParkingSpaces] = React.useState(initParking());
+  const [payedParkingList,setPayedParkingList] = React.useState(initParkingPayment());
+
   const updateParkingSpace =async (spaceNumber: number, ticket: Ticket | null) => {
    await setParkingSpaces((prev: ParkingSpace[]) =>
       prev.map((space) =>
@@ -43,6 +54,8 @@ export function ParkingContextProvider({
 	spaceNumber : spaceNumber ,
 	timeIn : today.getTime(),
 	timeOut : null,
+	paymentStatus : false ,
+	paymentOption : null,
 	//barcode combination  right to left : spaceNumber(2digits) - random1(10digits)
 	 barcode:`${spaceNumber > 9 ? spaceNumber : "0"+spaceNumber}${today.getHours() > 9 ? today.getHours():"0"+today.getHours() }${today.getMinutes() > 9 ? today.getMinutes() : "0"+today.getMinutes() }${randomNumber}`}
 	return newTicket;
@@ -72,16 +85,48 @@ export function ParkingContextProvider({
 	}
 	return 0 ;
   }
+//task#3 payTicket(barcode, paymentMethod) 
+const payTicket = (barcode : String , paymentMethod :PaymentOption)=>{
+	const carPark = parkingSpaces.find(item=>item.ticket?.barcode == barcode);
+	if(carPark && carPark.ticket){
+		carPark.ticket.paymentStatus = true ;
+		carPark.ticket.paymentOption = paymentMethod ;
+		carPark.ticket.timeOut = new Date().getTime() ;
+		updateParkingSpace(carPark.spaceNumber , carPark.ticket);
+		setPayedParkingList([...payedParkingList , carPark])
 
+	}else {
+		console.log("something wrong your car place doesnt exist ...")
+	}
+}
 
   const leave = async (spaceNumber: number) => {
 	const carpark = parkingSpaces.find(item=>item.spaceNumber== spaceNumber);
 	if(carpark && carpark.ticket && carpark.ticket.barcode){
-		console.log(`your cost :  ${calculatePrice(carpark.ticket.barcode)} euro`);
-		const p = new Promise((resolve) =>
-		  resolve(updateParkingSpace(spaceNumber, null))
-		);
-		return await p;
+		if(!carpark.ticket.paymentStatus){
+			console.log(`your cost :  ${calculatePrice(carpark.ticket.barcode)} euro`);
+			let paymentType = prompt("please enter your payment option : " , "cash - debit -credit")?.toUpperCase();
+			let paymentOption : PaymentOption = PaymentOption.CASH ;
+			switch (paymentType) {
+			    case PaymentOption.CREDIT:
+				     paymentOption = PaymentOption.CREDIT
+					break;
+				case PaymentOption.DEBIT:
+					paymentOption = PaymentOption.DEBIT
+					break;				
+			}
+			payTicket(carpark.ticket.barcode , paymentOption)
+
+			const p = new Promise((resolve) =>
+			  resolve(updateParkingSpace(spaceNumber, carpark.ticket))
+			);
+			return await p;
+
+		}else{
+			console.log("you are paid");
+			
+		}
+
 	}else{
 		console.log("something wrong your car place doesnt exist ...")
 	}
@@ -95,6 +140,10 @@ export function ParkingContextProvider({
   React.useEffect(() => {
     localStorage.setItem('parkingSpaces', JSON.stringify(parkingSpaces))
   }, [parkingSpaces])
+
+  React.useEffect(() => {
+    localStorage.setItem('payedParkingList', JSON.stringify(payedParkingList))
+  }, [payedParkingList])
 
 
 

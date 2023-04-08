@@ -22,7 +22,7 @@ function ParkingBox({
 
   return (
     <ParkingBoxContainer
-      className={ticket ? "occupied" : "free"}
+      className={(ticket?.timeIn)&&(!ticket?.timeOut) ? "occupied" : "free"}
       onClick={togglePlace}
     >
       {spaceNumber}

@@ -13,4 +13,10 @@ export interface Ticket {
 	barcode : String;
 	timeIn : Number | null ;
 	timeOut : Number | null;
+	paymentStatus : Boolean | null;
+	paymentOption : PaymentOption | null
+}
+
+export enum PaymentOption{
+	"CREDIT" = "CREDIT", "DEBIT" = "DEBIT", "CASH" = "CASH"
 }
