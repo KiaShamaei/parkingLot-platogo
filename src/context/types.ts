@@ -7,14 +7,17 @@ export interface ParkingContextType {
   parkingSpaces: ParkingSpace[];
   park: (spaceNumber: number) => void;
   leave: (spaceNumber: number) => void;
+  getFreeSpaces : ()=>number;
 }
 export interface Ticket {
 	spaceNumber : Number;
 	barcode : String;
-	timeIn : Number | null ;
-	timeOut : Number | null;
+	timeIn : number | null ;
+	timeOut : number | null;
 	paymentStatus : Boolean | null;
-	paymentOption : PaymentOption | null
+	paymentOption : PaymentOption | null;
+	paymentOptionExtra : PaymentOption | null;
+
 }
 
 export enum PaymentOption{

@@ -8,13 +8,19 @@ function ParkingBox({
 }: {
   parkingSpace: ParkingSpace;
 }): JSX.Element {
-  const { park, leave } = useParking();
+  const { park, leave} = useParking();
   const { spaceNumber, ticket } = parkingSpace;
 
   const togglePlace = async () => {
     try {
-      const res = ticket ? leave(spaceNumber) : park(spaceNumber);
-      console.log(ticket ? "Goodbye!" : "Welcome!");
+      const res = !ticket?.paymentStatus ? leave(spaceNumber) : park(spaceNumber);
+	  if(ticket?.timeOut && ticket.paymentStatus){
+		console.log("Goodbye!")
+	  }else if(ticket?.timeOut){
+		console.log("you pay extra charge for more 15 min");	
+	  }else{
+		console.log("Welcome!");
+	  }
     } catch (error) {
       console.log(error);
     }
@@ -22,7 +28,7 @@ function ParkingBox({
 
   return (
     <ParkingBoxContainer
-      className={(ticket?.timeIn)&&(!ticket?.timeOut) ? "occupied" : "free"}
+      className={(ticket?.timeIn)&&(!ticket?.paymentStatus) ? "occupied" : "free"}
       onClick={togglePlace}
     >
       {spaceNumber}
@@ -66,6 +72,7 @@ function OuterRow({ start, end }: { start: number; end: number }) {
 }
 
 export default function ParkingView() {
+	const {getFreeSpaces} = useParking();
   return (
     <Container>
       <Parking>
@@ -77,9 +84,15 @@ export default function ParkingView() {
         <OuterRow start={38} end={54} />
       </Parking>
       <Message>Please click on a parking place to park or leave.</Message>
+	  <Button onClick={getFreeSpaces}>getFreeSpaces</Button>
     </Container>
   );
 }
+const Button = styled.button`
+border-radius : 5px ;
+padding : 5px;
+background: var(--free-spot);
+`
 
 const Container = styled.div`
   margin: 64px 128px;

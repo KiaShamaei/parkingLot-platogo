@@ -56,6 +56,7 @@ export function ParkingContextProvider({
 			timeOut: null,
 			paymentStatus: false,
 			paymentOption: null,
+			paymentOptionExtra: null,
 			//barcode combination  right to left : spaceNumber(2digits) - random1(10digits)
 			barcode: `${spaceNumber > 9 ? spaceNumber : "0" + spaceNumber}${today.getHours() > 9 ? today.getHours() : "0" + today.getHours()}${today.getMinutes() > 9 ? today.getMinutes() : "0" + today.getMinutes()}${randomNumber}`
 		}
@@ -74,25 +75,28 @@ export function ParkingContextProvider({
 	const calculatePrice = (barcode: String): Number => {
 		const carParkPlace = parkingSpaces.find(item => item.ticket?.barcode == barcode);
 		let cost = 0;
-		let timeToExit = new Date().getTime();
 		if (carParkPlace && carParkPlace.ticket && carParkPlace.ticket.timeIn && !carParkPlace.ticket?.paymentStatus) {
-			let timeIn: Number | any = carParkPlace.ticket.timeIn
-			let parkTimeMillisconds = timeToExit - timeIn;
-			let parkTimeHours = parkTimeMillisconds / (60 * 60 * 1000);
-			cost = (Math.floor(parkTimeHours) > 1 ? Math.floor(parkTimeHours) : 1) * 2
+			let parkTimeHours = Math.floor(calculateTimePassPerMinute(carParkPlace.ticket.timeIn) / 60)
+			cost = parkTimeHours > 1 ? parkTimeHours * 2 : 1 * 2
 			return cost;
 		} else {
 			console.log("something wrong your car place doesnt exist ...")
 		}
 		return 0;
 	}
+	//calculate time passed
+	const calculateTimePassPerMinute = (time: number): number => {
+		let timeNow = new Date().getTime();
+		return (timeNow - time) / (60 * 1000);
+	}
 	//task#3 payTicket(barcode, paymentMethod) 
-	const payTicket = (barcode: String, paymentMethod: PaymentOption): Boolean => {
+	const payTicket = (barcode: String, paymentMethod: PaymentOption): boolean => {
 		const carPark = parkingSpaces.find(item => item.ticket?.barcode == barcode);
 		if (carPark && carPark.ticket) {
-			carPark.ticket.paymentStatus = true;
 			carPark.ticket.paymentOption = paymentMethod;
 			carPark.ticket.timeOut = new Date().getTime();
+			console.log(`your cost :  ${calculatePrice(carPark.ticket.barcode)} euro`);
+			//paid process
 			updateParkingSpace(carPark.spaceNumber, carPark.ticket);
 			setPayedParkingList([...payedParkingList, carPark])
 			return true;
@@ -101,10 +105,13 @@ export function ParkingContextProvider({
 			return false;
 		}
 	}
-	const getPaymentOption=() : PaymentOption | null=>{
-		let paymentType = prompt("please enter your payment option : ", "cash - debit -credit")?.toUpperCase();
-		let paymentOption: PaymentOption = PaymentOption.CASH;
+	const getPaymentOption = (cost: string): PaymentOption | null => {
+		let paymentType = prompt(`please enter your payment option for ${cost} : `, "cash - debit -credit")?.toUpperCase();
+		let paymentOption;
 		switch (paymentType) {
+			case PaymentOption.CASH:
+				paymentOption = PaymentOption.CASH
+				break;
 			case PaymentOption.CREDIT:
 				paymentOption = PaymentOption.CREDIT
 				break;
@@ -120,57 +127,83 @@ export function ParkingContextProvider({
 
 	//#task4 getTicketState(barcode);
 
-	const getTicketStats = async (barcode: String): Boolean => {
+	const getTicketStatus = (barcode: String): any => {
 		const carpark = parkingSpaces.find(item => item.ticket?.barcode == barcode);
 		if (carpark && carpark.ticket && carpark.ticket.barcode) {
-			if (!carpark.ticket.paymentStatus) {
-				console.log(`your cost :  ${calculatePrice(carpark.ticket.barcode)} euro`);
-				let paymentOption = getPaymentOption();
-				let payResult = paymentOption ? payTicket(carpark.ticket.barcode, paymentOption) : false;
-				//check payment process
-				if (payResult) {
-					const p = new Promise((resolve) =>
-						resolve(updateParkingSpace(carpark.spaceNumber, carpark.ticket))
-					);
-					console.log("you paid before gate open")
-					return true;
-				} else {
-					console.log("you must pay before exit")
-					return false;
-				}
-			} else {
-				//paid before checking
-				if (carpark.ticket.timeOut) {
-					let extraTime = carpark.ticket.timeOut.toString();
-					const passingTimeAfterPayment = new Date(extraTime).getMinutes();
-					if (passingTimeAfterPayment > 15) {
-						console.log(`you must pay extra charge for ${passingTimeAfterPayment}`);
-						carpark.ticket.paymentStatus = false;
-						let paymentOption = getPaymentOption();
-						let payResult = paymentOption ? payTicket(carpark.ticket.barcode, paymentOption) : false;
-						return payResult;
-					} else {
-						console.log("you paid before gate open")
+			//paid before check time past after payment
+			const timeOut = carpark.ticket.timeOut;
+			if (timeOut) {
+				let extraTime = calculateTimePassPerMinute(timeOut)
+				if (extraTime > 1) {
+					//must pay extra charge 
+					console.log(`you must pay extra charge for ${extraTime}`);
+					let paymentOption = getPaymentOption("extra charge");
+					if (paymentOption) {
+						carpark.ticket.paymentStatus = true;
+						carpark.ticket.paymentOptionExtra = paymentOption;
 						return true;
+					} else {
+						return false;
 					}
 
 				} else {
-					console.log("something wrong your car place doesnt timeout but status paid ...")
-					return false;
+					 carpark.ticket.paymentStatus = true;
+					console.log("you paid before gate open")
+					return true;
 				}
-
+			} else {
+				//timeout doesnt exit...
+				console.log("something wrong try it later ...");
+				return false;
 			}
-
 		} else {
 			console.log("something wrong your car place doesnt exist ...");
 			return false
 		}
+	}
 
-
+	//#task5 getFreeSpaces
+	const getFreeSpaces = ()=>{
+		let freeSpace = PARKING_CAPACITY;
+		parkingSpaces.forEach(parkSpace=>{
+			if(parkSpace.ticket && parkSpace.ticket.timeIn && !parkSpace.ticket.paymentStatus){
+				freeSpace--;
+			}
+		})
+		console.log(` free space : ${freeSpace}`);
+		return freeSpace;
 	}
 
 	const leave = async (spaceNumber: number) => {
 		const carpark = parkingSpaces.find(item => item.spaceNumber == spaceNumber);
+		let state = true;
+		if (carpark && carpark.ticket) {
+			if (carpark.ticket.timeOut) {
+				state = getTicketStatus(carpark.ticket.barcode)
+			} else {
+				//doesnt pay and out before 
+				let paymentOption = getPaymentOption("cost");
+				if (paymentOption) {
+					state = payTicket(carpark.ticket.barcode, paymentOption)
+				} else {
+					console.log("please choose payment option and pay...")
+				}
+			}
+			//check going out or not 
+			let getOut = prompt("do you want get out now", "yes or no")?.toUpperCase();
+			if (getOut && getOut === "YES" && state) {
+				const p = new Promise((resolve) =>
+					resolve(updateParkingSpace(spaceNumber, carpark.ticket))
+				);
+				return await p;
+			}else{
+				console.log("please show your ticket on gate ...");
+			}
+		} else {
+			console.log("something wrong tyr it later ...");
+
+		}
+
 
 	};
 
@@ -178,6 +211,7 @@ export function ParkingContextProvider({
 		parkingSpaces,
 		park,
 		leave,
+		getFreeSpaces
 	};
 	React.useEffect(() => {
 		localStorage.setItem('parkingSpaces', JSON.stringify(parkingSpaces))
@@ -195,7 +229,6 @@ export function ParkingContextProvider({
 		</ParkingContext.Provider>
 	);
 }
-
 export function useParking(): ParkingContextType {
 	const context = React.useContext(ParkingContext);
 	if (context === undefined) {
@@ -204,3 +237,4 @@ export function useParking(): ParkingContextType {
 
 	return context;
 }
+
