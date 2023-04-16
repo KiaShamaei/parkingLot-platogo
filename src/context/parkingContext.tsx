@@ -18,6 +18,7 @@ function initParking(): ParkingSpace[] {
 		}));
 	}
 }
+
 function initParkingPayment(): ParkingSpace[] {
 	const localValue = localStorage.getItem('payedParkingList')
 	const payedParkingList = localValue ? JSON.parse(localValue) : null;
@@ -106,7 +107,7 @@ export function ParkingContextProvider({
 		}
 	}
 	const getPaymentOption = (cost: string): PaymentOption | null => {
-		let paymentType = prompt(`please enter your payment option for ${cost} : `, "cash - debit -credit")?.toUpperCase();
+		let paymentType = prompt(`please enter your payment option ${cost} : `, "cash - debit -credit")?.toUpperCase();
 		let paymentOption;
 		switch (paymentType) {
 			case PaymentOption.CASH:
@@ -163,6 +164,7 @@ export function ParkingContextProvider({
 	}
 
 	//#task5 getFreeSpaces
+
 	const getFreeSpaces = ()=>{
 		let freeSpace = PARKING_CAPACITY;
 		parkingSpaces.forEach(parkSpace=>{
@@ -187,6 +189,8 @@ export function ParkingContextProvider({
 					state = payTicket(carpark.ticket.barcode, paymentOption)
 				} else {
 					console.log("please choose payment option and pay...")
+					//for cancel process ...
+					return null
 				}
 			}
 			//check going out or not 
@@ -198,6 +202,7 @@ export function ParkingContextProvider({
 				return await p;
 			}else{
 				console.log("please show your ticket on gate ...");
+				return true
 			}
 		} else {
 			console.log("something wrong tyr it later ...");

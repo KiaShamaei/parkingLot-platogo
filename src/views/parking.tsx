@@ -4,89 +4,100 @@ import { useParking } from "../context/parkingContext";
 import { ParkingSpace } from "../context/types";
 
 function ParkingBox({
-  parkingSpace,
+	parkingSpace,
 }: {
-  parkingSpace: ParkingSpace;
+	parkingSpace: ParkingSpace;
 }): JSX.Element {
-  const { park, leave} = useParking();
-  const { spaceNumber, ticket } = parkingSpace;
+	const { park, leave } = useParking();
+	const { spaceNumber, ticket } = parkingSpace;
 
-  const togglePlace = async () => {
-    try {
-      const res = !ticket?.paymentStatus ? leave(spaceNumber) : park(spaceNumber);
-	  if(ticket?.timeOut && ticket.paymentStatus){
-		console.log("Goodbye!")
-	  }else if(ticket?.timeOut){
-		console.log("you pay extra charge for more 15 min");	
-	  }else{
-		console.log("Welcome!");
-	  }
-    } catch (error) {
-      console.log(error);
-    }
-  };
+	const togglePlace = async () => {3
+		try {
+			let result = null;
+			if (!ticket?.paymentStatus) {
+				result = await leave(spaceNumber)
+			} else {
+				result = await park(spaceNumber)
+			}
+			if(result != null){
+				if ( ticket?.timeOut && ticket.paymentStatus) {
+					console.log("Goodbye!")
+				} else if (ticket?.timeOut) {
+					console.log("you pay extra charge for more 15 min");
+				} else{
+					console.log("Welcome!");
+				}
+			}else{
+				console.log("you must choose a payment term and pay before out");
+			
+			}
+	
+		} catch (error) {
+			console.log(error);
+		}
+	};
 
-  return (
-    <ParkingBoxContainer
-      className={(ticket?.timeIn)&&(!ticket?.paymentStatus) ? "occupied" : "free"}
-      onClick={togglePlace}
-    >
-      {spaceNumber}
-    </ParkingBoxContainer>
-  );
+	return (
+		<ParkingBoxContainer
+			className={(ticket?.timeIn) && (!ticket?.paymentStatus) ? "occupied" : "free"}
+			onClick={togglePlace}
+		>
+			{spaceNumber}
+		</ParkingBoxContainer>
+	);
 }
 
 function InnerRow({
-  start,
-  end,
-  first = false,
+	start,
+	end,
+	first = false,
 }: {
-  start: number;
-  end: number;
-  first?: boolean;
+	start: number;
+	end: number;
+	first?: boolean;
 }) {
-  const { parkingSpaces } = useParking();
+	const { parkingSpaces } = useParking();
 
-  const blank = [0, 1].map((idx) => <div key={idx} />);
+	const blank = [0, 1].map((idx) => <div key={idx} />);
 
-  return (
-    <InnerRowContainer first={first}>
-      {blank}
-      {parkingSpaces.slice(start, end).map((space) => (
-        <ParkingBox key={space.spaceNumber} parkingSpace={space} />
-      ))}
-      {blank}
-    </InnerRowContainer>
-  );
+	return (
+		<InnerRowContainer first={first}>
+			{blank}
+			{parkingSpaces.slice(start, end).map((space) => (
+				<ParkingBox key={space.spaceNumber} parkingSpace={space} />
+			))}
+			{blank}
+		</InnerRowContainer>
+	);
 }
 
 function OuterRow({ start, end }: { start: number; end: number }) {
-  const { parkingSpaces } = useParking();
-  return (
-    <OuterRowContainer>
-      {parkingSpaces.slice(start, end).map((space) => (
-        <ParkingBox key={space.spaceNumber} parkingSpace={space} />
-      ))}
-    </OuterRowContainer>
-  );
+	const { parkingSpaces } = useParking();
+	return (
+		<OuterRowContainer>
+			{parkingSpaces.slice(start, end).map((space) => (
+				<ParkingBox key={space.spaceNumber} parkingSpace={space} />
+			))}
+		</OuterRowContainer>
+	);
 }
 
 export default function ParkingView() {
-	const {getFreeSpaces} = useParking();
-  return (
-    <Container>
-      <Parking>
-        <OuterRow start={0} end={16} />
-        <div />
-        <InnerRow first start={16} end={27} />
-        <InnerRow start={27} end={38} />
-        <div />
-        <OuterRow start={38} end={54} />
-      </Parking>
-      <Message>Please click on a parking place to park or leave.</Message>
-	  <Button onClick={getFreeSpaces}>getFreeSpaces</Button>
-    </Container>
-  );
+	const { getFreeSpaces } = useParking();
+	return (
+		<Container>
+			<Parking>
+				<OuterRow start={0} end={16} />
+				<div />
+				<InnerRow first start={16} end={27} />
+				<InnerRow start={27} end={38} />
+				<div />
+				<OuterRow start={38} end={54} />
+			</Parking>
+			<Message>Please click on a parking place to park or leave.</Message>
+			<Button onClick={getFreeSpaces}>getFreeSpaces</Button>
+		</Container>
+	);
 }
 const Button = styled.button`
 border-radius : 5px ;
@@ -122,10 +133,10 @@ const OuterRowContainer = styled.div`
 `;
 
 interface InnerRowContainerProps {
-  readonly first?: boolean;
+	readonly first?: boolean;
 }
 
-const InnerRowContainer = styled(OuterRowContainer)<InnerRowContainerProps>`
+const InnerRowContainer = styled(OuterRowContainer) <InnerRowContainerProps>`
   & > div {
     border-bottom: ${(props) => (props.first ? "1px solid black" : "none")};
   }
