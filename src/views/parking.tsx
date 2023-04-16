@@ -11,25 +11,16 @@ function ParkingBox({
 	const { park, leave } = useParking();
 	const { spaceNumber, ticket } = parkingSpace;
 
-	const togglePlace = async () => {3
+	const togglePlace = async () => {
 		try {
-			let result = null;
-			if (!ticket?.paymentStatus) {
-				result = await leave(spaceNumber)
-			} else {
-				result = await park(spaceNumber)
-			}
-			if(result != null){
-				if ( ticket?.timeOut && ticket.paymentStatus) {
-					console.log("Goodbye!")
-				} else if (ticket?.timeOut) {
-					console.log("you pay extra charge for more 15 min");
-				} else{
-					console.log("Welcome!");
-				}
-			}else{
-				console.log("you must choose a payment term and pay before out");
-			
+			if ((ticket && !ticket.paymentStatus)) {	
+				 await leave(spaceNumber);
+			}else if(ticket && !ticket.paymentStatus && ticket.timeOut ){
+				console.log("you pay extra charge for more 15 min");
+				await leave(spaceNumber)
+			} else if(!ticket || ticket.paymentStatus) {
+				await park(spaceNumber)
+				console.log("Welcome!");
 			}
 	
 		} catch (error) {
